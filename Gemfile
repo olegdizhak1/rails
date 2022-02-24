@@ -6,8 +6,6 @@ git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 
 gemspec
 
-gem "rbtree", github: "zzak/rbtree" # Ruby 3.2 compatibility
-
 gem "minitest", ">= 5.15.0"
 
 # We need a newish Rake since Active Job sets its test tasks' descriptions.
@@ -46,7 +44,7 @@ group :rubocop do
 end
 
 group :doc do
-  gem "sdoc", ">= 2.3.0"
+  gem "sdoc", ">= 2.3.1"
   gem "redcarpet", "~> 3.2.3", platforms: :ruby
   gem "w3c_validators", "~> 1.3.6"
   gem "kindlerb", "~> 1.2.0"

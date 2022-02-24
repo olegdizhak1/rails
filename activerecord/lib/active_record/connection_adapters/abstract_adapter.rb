@@ -224,30 +224,30 @@ module ActiveRecord
       def lease
         if in_use?
           msg = +"Cannot lease connection, "
-          if @owner == Thread.current
+          if @owner == ActiveSupport::IsolatedExecutionState.context
             msg << "it is already leased by the current thread."
           else
             msg << "it is already in use by a different thread: #{@owner}. " \
-                   "Current thread: #{Thread.current}."
+                   "Current thread: #{ActiveSupport::IsolatedExecutionState.context}."
           end
           raise ActiveRecordError, msg
         end
 
-        @owner = Thread.current
+        @owner = ActiveSupport::IsolatedExecutionState.context
       end
 
       def connection_class # :nodoc:
         @pool.connection_class
       end
 
-      # The role (ie :writing) for the current connection. In a
-      # non-multi role application, `:writing` is returned.
+      # The role (e.g. +:writing+) for the current connection. In a
+      # non-multi role application, +:writing+ is returned.
       def role
         @pool.role
       end
 
-      # The shard (ie :default) for the current connection. In
-      # a non-sharded application, `:default` is returned.
+      # The shard (e.g. +:default+) for the current connection. In
+      # a non-sharded application, +:default+ is returned.
       def shard
         @pool.shard
       end
@@ -264,10 +264,10 @@ module ActiveRecord
       # this method must only be called while holding connection pool's mutex
       def expire
         if in_use?
-          if @owner != Thread.current
+          if @owner != ActiveSupport::IsolatedExecutionState.context
             raise ActiveRecordError, "Cannot expire connection, " \
               "it is owned by a different thread: #{@owner}. " \
-              "Current thread: #{Thread.current}."
+              "Current thread: #{ActiveSupport::IsolatedExecutionState.context}."
           end
 
           @idle_since = Process.clock_gettime(Process::CLOCK_MONOTONIC)
@@ -280,10 +280,10 @@ module ActiveRecord
       # this method must only be called while holding connection pool's mutex (and a desire for segfaults)
       def steal! # :nodoc:
         if in_use?
-          if @owner != Thread.current
+          if @owner != ActiveSupport::IsolatedExecutionState.context
             pool.send :remove_connection_from_thread_cache, self, @owner
 
-            @owner = Thread.current
+            @owner = ActiveSupport::IsolatedExecutionState.context
           end
         else
           raise ActiveRecordError, "Cannot steal connection, it is not currently leased."
@@ -326,6 +326,12 @@ module ActiveRecord
 
       # Does this adapter support savepoints?
       def supports_savepoints?
+        false
+      end
+
+      # Do TransactionRollbackErrors on savepoints affect the parent
+      # transaction?
+      def savepoint_errors_invalidate_transactions?
         false
       end
 
